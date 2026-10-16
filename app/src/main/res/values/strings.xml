@@ -20,6 +20,10 @@
     <string name="fb_sound">提示：声音</string>
     <string name="fb_sound_vibrate">提示：声音+震动</string>
     <string name="fb_vibrate">提示：震动</string>
+    <string name="priority_smart">优先：智能</string>
+    <string name="priority_ean13">优先：商品条码</string>
+    <string name="priority_code128">优先：Code128</string>
+    <string name="priority_manual">优先：手动</string>
     <string name="torch_on">开灯</string>
     <string name="torch_off">关灯</string>
     <string name="save_csv">保存为 CSV</string>

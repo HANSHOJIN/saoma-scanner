@@ -24,10 +24,14 @@ public class OverlayView extends View {
     public static class Detection {
         public final String value;
         public final RectF box; // 视图坐标
+        public final int format; // ML Kit 的条码格式
+        /** 是否被判定为"将自动记录"的那个（画绿框并标注） */
+        public boolean auto;
 
-        public Detection(String value, RectF box) {
+        public Detection(String value, RectF box, int format) {
             this.value = value;
             this.box = box;
+            this.format = format;
         }
     }
 
@@ -105,7 +109,7 @@ public class OverlayView extends View {
             if (d == null || d.box == null) {
                 continue;
             }
-            int color = multi ? 0xFFFF3B30 : 0xFF00C853;
+            int color = d.auto ? 0xFF00C853 : (multi ? 0xFFFF3B30 : 0xFF00C853);
             boxPaint.setColor(color);
 
             RectF b = new RectF(d.box);
@@ -123,6 +127,9 @@ public class OverlayView extends View {
             String label = d.value == null ? "" : d.value;
             if (label.length() > 20) {
                 label = label.substring(0, 20) + "…";
+            }
+            if (d.auto) {
+                label = label + "  · 自动";
             }
             if (label.isEmpty()) {
                 continue;

@@ -54,6 +54,24 @@
             android:textColor="#FFFFFF"
             android:textSize="14sp"
             android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/priorityButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="64dp"
+            android:layout_marginRight="10dp"
+            android:background="@drawable/torch_bg"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingLeft="14dp"
+            android:paddingTop="8dp"
+            android:paddingRight="14dp"
+            android:paddingBottom="8dp"
+            android:text="@string/priority_smart"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp" />
     </FrameLayout>
 
     <LinearLayout
@@ -122,40 +140,48 @@
             android:text="@string/fb_sound_vibrate"
             android:textColor="#2E7D32"
             android:textSize="13sp" />
-
-        <TextView
-            android:id="@+id/countText"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:ellipsize="end"
-            android:gravity="end|center_vertical"
-            android:maxLines="1"
-            android:paddingLeft="4dp"
-            android:paddingRight="4dp"
-            android:text="@string/count_zero"
-            android:textColor="#666666"
-            android:textSize="11sp" />
     </LinearLayout>
 
-    <EditText
-        android:id="@+id/resultEdit"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="118dp"
         android:layout_marginLeft="10dp"
         android:layout_marginTop="2dp"
-        android:layout_marginRight="10dp"
-        android:background="#F2F3F5"
-        android:fontFamily="monospace"
-        android:gravity="top|start"
-        android:hint="@string/edit_hint"
-        android:importantForAutofill="no"
-        android:inputType="textMultiLine|textNoSuggestions"
-        android:padding="10dp"
-        android:scrollbars="vertical"
-        android:textColor="#111111"
-        android:textColorHint="#AAAAAA"
-        android:textSize="14sp" />
+        android:layout_marginRight="10dp">
+
+        <EditText
+            android:id="@+id/resultEdit"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#F2F3F5"
+            android:fontFamily="monospace"
+            android:gravity="top|start"
+            android:hint="@string/edit_hint"
+            android:importantForAutofill="no"
+            android:inputType="textMultiLine|textNoSuggestions"
+            android:padding="10dp"
+            android:scrollbars="vertical"
+            android:textColor="#111111"
+            android:textColorHint="#AAAAAA"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/countText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="6dp"
+            android:background="#E6FFFFFF"
+            android:clickable="false"
+            android:focusable="false"
+            android:paddingLeft="8dp"
+            android:paddingTop="3dp"
+            android:paddingRight="8dp"
+            android:paddingBottom="3dp"
+            android:text="@string/count_zero"
+            android:textColor="#666666"
+            android:textSize="12sp" />
+    </FrameLayout>
 
     <LinearLayout
         android:layout_width="match_parent"

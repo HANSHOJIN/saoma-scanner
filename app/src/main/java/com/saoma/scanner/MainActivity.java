@@ -12,6 +12,7 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.media.Image;
 import android.media.AudioManager;
+import android.media.SoundPool;
 import android.media.ToneGenerator;
 import android.net.Uri;
 import android.os.Build;
@@ -72,6 +73,20 @@ public class MainActivity extends ComponentActivity {
     private static final String KEY_RESULTS = "results";
     private static final String KEY_DEDUP = "dedup";
     private static final String KEY_FEEDBACK = "feedback";
+    private static final String KEY_PRIORITY = "priority";
+    private static final String KEY_LAST_SIG = "last_sig";
+    private static final String KEY_LAST_VALUE = "last_value";
+
+    /** 同屏多个条码时，自动判定的那个要稳定这么久才记录（给人工干预留时间） */
+    private static final long MULTI_AUTO_COMMIT_MS = 1000L;
+    /** 智能模式兜底：与上次记录的条码至少要有这么多位相同前缀才敢自动选 */
+    private static final int MIN_COMMON_PREFIX = 4;
+
+    /** 同屏多码时的优先策略 */
+    private static final int PRIORITY_SMART = 0;
+    private static final int PRIORITY_EAN13 = 1;
+    private static final int PRIORITY_CODE128 = 2;
+    private static final int PRIORITY_MANUAL = 3;
 
     /** 记录成功时的提示方式 */
     private static final int FB_NONE = 0;
@@ -94,6 +109,7 @@ public class MainActivity extends ComponentActivity {
     private TextView torchButton;
     private TextView dedupButton;
     private TextView feedbackButton;
+    private TextView priorityButton;
     private EditText resultEdit;
 
     private final ExecutorService analysisExecutor = Executors.newSingleThreadExecutor();
@@ -105,9 +121,21 @@ public class MainActivity extends ComponentActivity {
     private boolean dedupEnabled = true;
     /** 记录成功的提示方式：无 / 声音 / 声音+震动 / 震动 */
     private int feedbackMode = FB_SOUND_VIBRATE;
+    /** 同屏多码时的优先策略 */
+    private int priorityMode = PRIORITY_SMART;
+    /** 上一次记录/点选的条码指纹（"格式:长度"），智能模式据此自动选码 */
+    private String lastPickSignature = "";
+    /** 上一次记录的条码内容，用于前缀相似度兜底 */
+    private String lastCommittedValue = "";
+    /** 多码模式下"即将自动记录"的候选，以及它开始稳定的时间 */
+    private String autoCandidateKey;
+    private long autoSince;
     private SharedPreferences prefs;
     private Vibrator vibrator;
     private ToneGenerator toneGenerator;
+    private SoundPool soundPool;
+    private int soundOk;
+    private int soundDup;
 
     /** 每个条码值最近一次出现在画面里的时间 */
     private final Map<String, Long> lastSeen = new HashMap<>();
@@ -125,10 +153,12 @@ public class MainActivity extends ComponentActivity {
     private static class RawDetection {
         final String value;
         final Rect box;
+        final int format;
 
-        RawDetection(String value, Rect box) {
+        RawDetection(String value, Rect box, int format) {
             this.value = value;
             this.box = box;
+            this.format = format;
         }
     }
 
@@ -146,12 +176,23 @@ public class MainActivity extends ComponentActivity {
         torchButton = findViewById(R.id.torchButton);
         dedupButton = findViewById(R.id.dedupButton);
         feedbackButton = findViewById(R.id.feedbackButton);
+        priorityButton = findViewById(R.id.priorityButton);
         prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         dedupEnabled = prefs.getBoolean(KEY_DEDUP, true);
         updateDedupButton();
         feedbackMode = prefs.getInt(KEY_FEEDBACK, FB_SOUND_VIBRATE);
         updateFeedbackButton();
+        priorityMode = prefs.getInt(KEY_PRIORITY, PRIORITY_SMART);
+        lastPickSignature = prefs.getString(KEY_LAST_SIG, "");
+        lastCommittedValue = prefs.getString(KEY_LAST_VALUE, "");
+        updatePriorityButton();
         vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+        try {
+            soundPool = new SoundPool.Builder().setMaxStreams(2).build();
+            soundOk = soundPool.load(this, R.raw.beep_ok, 1);
+            soundDup = soundPool.load(this, R.raw.beep_dup, 1);
+        } catch (Exception ignored) {
+        }
         try {
             toneGenerator = new ToneGenerator(AudioManager.STREAM_MUSIC, 80);
         } catch (Exception ignored) {
@@ -194,10 +235,33 @@ public class MainActivity extends ComponentActivity {
                     break;
             }
         });
+        priorityButton.setOnClickListener(v -> {
+            priorityMode = (priorityMode + 1) % 4;
+            prefs.edit().putInt(KEY_PRIORITY, priorityMode).apply();
+            updatePriorityButton();
+            autoCandidateKey = null;
+            pendingValue = null;
+            switch (priorityMode) {
+                case PRIORITY_EAN13:
+                    toast("同屏多码时：优先自动记商品条码（EAN-13/UPC）");
+                    break;
+                case PRIORITY_CODE128:
+                    toast("同屏多码时：优先自动记 Code128");
+                    break;
+                case PRIORITY_MANUAL:
+                    toast("同屏多码时：全部手动点选");
+                    break;
+                default:
+                    toast("同屏多码时：智能（记住你上次点的那种码）");
+                    break;
+            }
+        });
 
         overlay.setTapListener(detection -> {
             if (detection != null && detection.value != null) {
-                commit(detection.value.trim());
+                // 手点以这次为准，顺便重新学习"以后自动记哪种"
+                autoCandidateKey = null;
+                commit(detection.value.trim(), detection.format);
             }
         });
 
@@ -337,7 +401,8 @@ public class MainActivity extends ComponentActivity {
                             if (value == null || value.trim().isEmpty()) {
                                 continue;
                             }
-                            list.add(new RawDetection(value.trim(), barcode.getBoundingBox()));
+                            list.add(new RawDetection(value.trim(), barcode.getBoundingBox(),
+                                    barcode.getFormat()));
                         }
                     }
                     runOnUiThread(() -> handleDetections(list, uprightWidth, uprightHeight));
@@ -403,21 +468,45 @@ public class MainActivity extends ComponentActivity {
             if (box == null) {
                 continue;
             }
-            visible.add(new OverlayView.Detection(d.value, box));
+            visible.add(new OverlayView.Detection(d.value, box, d.format));
         }
 
         boolean multi = visible.size() > 1;
+        String autoValue = null;
 
-        if (visible.size() == 1) {
-            String value = visible.get(0).value;
-            if (!value.equals(pendingValue)) {
-                pendingValue = value;
-                pendingSince = now;
-            } else if (now - pendingSince >= AUTO_COMMIT_MS) {
-                commit(value);
+        if (multi) {
+            // 同屏多个条码：按"优先"策略挑一个当作将自动记录的对象
+            pendingValue = null;
+            OverlayView.Detection autoPick = pickAutoCandidate(visible);
+            if (autoPick != null) {
+                autoPick.auto = true;
+                autoValue = autoPick.value;
+                String key = dedupKey(autoPick.value);
+                if (!key.equals(autoCandidateKey)) {
+                    autoCandidateKey = key;
+                    autoSince = now;
+                } else if (now - autoSince >= MULTI_AUTO_COMMIT_MS) {
+                    commit(autoPick.value, autoPick.format);
+                    autoCandidateKey = null;
+                    autoValue = null;
+                }
+            } else {
+                autoCandidateKey = null;
             }
         } else {
-            pendingValue = null;
+            autoCandidateKey = null;
+            if (visible.size() == 1) {
+                OverlayView.Detection only = visible.get(0);
+                String value = only.value;
+                if (!value.equals(pendingValue)) {
+                    pendingValue = value;
+                    pendingSince = now;
+                } else if (now - pendingSince >= AUTO_COMMIT_MS) {
+                    commit(value, only.format);
+                }
+            } else {
+                pendingValue = null;
+            }
         }
 
         overlay.setDetections(visible, multi);
@@ -430,9 +519,94 @@ public class MainActivity extends ComponentActivity {
                 lastDuplicateSignalAt = now;
                 duplicateFeedback();
             }
+        } else if (autoValue != null) {
+            flashMessage = null;
+            String shown = autoValue.length() > 16 ? autoValue.substring(0, 16) + "…" : autoValue;
+            setHint("将自动记录：" + shown + "（点别的框可改）", false);
         } else {
             updateHint(visible.size(), multi);
         }
+    }
+
+    /**
+     * 同屏多个条码时，挑出"应该自动记录"的那个；挑不出就返回 null（等人工点）。
+     * 智能模式：优先挑和上次记录同一种（格式+长度）的码；
+     * 分不出来时用"和上次记录的值前缀最像"兜底；再分不出就不猜。
+     */
+    private OverlayView.Detection pickAutoCandidate(List<OverlayView.Detection> visible) {
+        if (priorityMode == PRIORITY_MANUAL || visible.isEmpty()) {
+            return null;
+        }
+        List<OverlayView.Detection> matches = new ArrayList<>();
+        for (OverlayView.Detection d : visible) {
+            if (matchesPriority(d)) {
+                matches.add(d);
+            }
+        }
+        if (matches.size() == 1) {
+            return matches.get(0);
+        }
+        if (matches.isEmpty() && priorityMode == PRIORITY_SMART) {
+            return bestByPrefix(visible);
+        }
+        if (matches.size() > 1) {
+            return bestByPrefix(matches);
+        }
+        return null;
+    }
+
+    private boolean matchesPriority(OverlayView.Detection d) {
+        switch (priorityMode) {
+            case PRIORITY_EAN13:
+                return d.format == Barcode.FORMAT_EAN_13
+                        || d.format == Barcode.FORMAT_EAN_8
+                        || d.format == Barcode.FORMAT_UPC_A
+                        || d.format == Barcode.FORMAT_UPC_E;
+            case PRIORITY_CODE128:
+                return d.format == Barcode.FORMAT_CODE_128;
+            default:
+                return lastPickSignature != null
+                        && !lastPickSignature.isEmpty()
+                        && signatureOf(d.value, d.format).equals(lastPickSignature);
+        }
+    }
+
+    /** 在候选里挑"和上次记录的值前缀最像"的那个；并列或太不像就返回 null */
+    private OverlayView.Detection bestByPrefix(List<OverlayView.Detection> candidates) {
+        if (lastCommittedValue == null || lastCommittedValue.isEmpty()) {
+            return null;
+        }
+        int bestLen = MIN_COMMON_PREFIX - 1;
+        OverlayView.Detection best = null;
+        boolean tie = false;
+        for (OverlayView.Detection d : candidates) {
+            int len = commonPrefixLen(d.value, lastCommittedValue);
+            if (len > bestLen) {
+                bestLen = len;
+                best = d;
+                tie = false;
+            } else if (len == bestLen && best != null) {
+                tie = true;
+            }
+        }
+        return tie ? null : best;
+    }
+
+    /** 条码"指纹"：编码格式 + 长度（同款箱子上的不同条码长度不同，据此区分） */
+    private static String signatureOf(String value, int format) {
+        return format + ":" + (value == null ? 0 : value.length());
+    }
+
+    private static int commonPrefixLen(String a, String b) {
+        if (a == null || b == null) {
+            return 0;
+        }
+        int n = Math.min(a.length(), b.length());
+        int i = 0;
+        while (i < n && a.charAt(i) == b.charAt(i)) {
+            i++;
+        }
+        return i;
     }
 
     /** 文字提示，warn=true 时用红底，更容易注意到 */
@@ -467,6 +641,27 @@ public class MainActivity extends ComponentActivity {
         }
     }
 
+    private void updatePriorityButton() {
+        switch (priorityMode) {
+            case PRIORITY_EAN13:
+                priorityButton.setText(R.string.priority_ean13);
+                priorityButton.setTextColor(0xFF00E5FF);
+                break;
+            case PRIORITY_CODE128:
+                priorityButton.setText(R.string.priority_code128);
+                priorityButton.setTextColor(0xFF00E5FF);
+                break;
+            case PRIORITY_MANUAL:
+                priorityButton.setText(R.string.priority_manual);
+                priorityButton.setTextColor(0xFFFFD54F);
+                break;
+            default:
+                priorityButton.setText(R.string.priority_smart);
+                priorityButton.setTextColor(0xFFFFFFFF);
+                break;
+        }
+    }
+
     /** 把 ML Kit 的「图像坐标」换算成 PreviewView 的「视图坐标」（PreviewView 默认 FILL_CENTER） */
     private RectF mapToView(Rect box, int imageWidth, int imageHeight, int viewWidth, int viewHeight) {
         if (box == null || imageWidth <= 0 || imageHeight <= 0 || viewWidth <= 0 || viewHeight <= 0) {
@@ -484,7 +679,7 @@ public class MainActivity extends ComponentActivity {
 
     // ---------------------------------------------------------------- 记录
 
-    private void commit(String value) {
+    private void commit(String value, int format) {
         if (value == null) {
             return;
         }
@@ -497,6 +692,16 @@ public class MainActivity extends ComponentActivity {
         suppressed.put(dedupKey(value), now);
         lastSeen.put(dedupKey(value), now);
         pendingValue = null;
+
+        // 记住这次记的是"哪种码"，智能模式下次同屏多码时优先自动选它
+        lastPickSignature = signatureOf(value, format);
+        lastCommittedValue = value;
+        if (prefs != null) {
+            prefs.edit()
+                    .putString(KEY_LAST_SIG, lastPickSignature)
+                    .putString(KEY_LAST_VALUE, lastCommittedValue)
+                    .apply();
+        }
 
         String shown = value.length() > 22 ? value.substring(0, 22) + "…" : value;
         flashMessage = "已记录：" + shown;
@@ -523,9 +728,23 @@ public class MainActivity extends ComponentActivity {
             } catch (Exception ignored) {
             }
         }
-        if (wantSound && toneGenerator != null) {
+        if (wantSound) {
+            playSound(soundOk, ToneGenerator.TONE_PROP_BEEP);
+        }
+    }
+
+    /** 播放合成好的提示音（WAV），还没加载好时退回系统的短提示音 */
+    private void playSound(int soundId, int fallbackTone) {
+        boolean played = false;
+        if (soundPool != null && soundId != 0) {
             try {
-                toneGenerator.startTone(ToneGenerator.TONE_PROP_BEEP, 130);
+                played = soundPool.play(soundId, 1f, 1f, 1, 0, 1f) != 0;
+            } catch (Exception ignored) {
+            }
+        }
+        if (!played && toneGenerator != null) {
+            try {
+                toneGenerator.startTone(fallbackTone, 130);
             } catch (Exception ignored) {
             }
         }
@@ -550,11 +769,8 @@ public class MainActivity extends ComponentActivity {
             } catch (Exception ignored) {
             }
         }
-        if (wantSound && toneGenerator != null) {
-            try {
-                toneGenerator.startTone(ToneGenerator.TONE_PROP_NACK, 200);
-            } catch (Exception ignored) {
-            }
+        if (wantSound) {
+            playSound(soundDup, ToneGenerator.TONE_PROP_NACK);
         }
     }
 
@@ -775,6 +991,9 @@ public class MainActivity extends ComponentActivity {
         }
         if (toneGenerator != null) {
             toneGenerator.release();
+        }
+        if (soundPool != null) {
+            soundPool.release();
         }
         if (cameraProvider != null) {
             cameraProvider.unbindAll();
