@@ -1,0 +1,17 @@
+# 构建产物
+app/build/
+build/
+.gradle/
+captures/
+*.apk
+
+# 本地工具链（JDK / Android SDK / Gradle，体积大，不进仓库）
+tools/
+
+# 签名文件与机器相关配置
+keystore/
+local.properties
+
+# IDE
+.idea/
+*.iml

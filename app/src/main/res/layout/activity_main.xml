@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg"
+    android:orientation="vertical">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#000000">
+
+        <androidx.camera.view.PreviewView
+            android:id="@+id/previewView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <com.saoma.scanner.OverlayView
+            android:id="@+id/overlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <TextView
+            android:id="@+id/hintText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="14dp"
+            android:background="#99000000"
+            android:paddingLeft="14dp"
+            android:paddingTop="7dp"
+            android:paddingRight="14dp"
+            android:paddingBottom="7dp"
+            android:text="@string/hint_idle"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/torchButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="14dp"
+            android:layout_marginRight="10dp"
+            android:background="@drawable/torch_bg"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingLeft="16dp"
+            android:paddingTop="9dp"
+            android:paddingRight="16dp"
+            android:paddingBottom="9dp"
+            android:text="@string/torch_on"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:visibility="gone" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingLeft="10dp"
+        android:paddingTop="6dp"
+        android:paddingRight="10dp"
+        android:paddingBottom="6dp">
+
+        <Button
+            android:id="@+id/undoButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:minHeight="38dp"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            android:text="@string/undo"
+            android:textAllCaps="false"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/clearButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="6dp"
+            android:minWidth="0dp"
+            android:minHeight="38dp"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            android:text="@string/clear"
+            android:textAllCaps="false"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/dedupButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="6dp"
+            android:background="@drawable/pill_light"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingLeft="10dp"
+            android:paddingTop="8dp"
+            android:paddingRight="10dp"
+            android:paddingBottom="8dp"
+            android:text="@string/dedup_on"
+            android:textColor="#2E7D32"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/feedbackButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="6dp"
+            android:background="@drawable/pill_light"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingLeft="10dp"
+            android:paddingTop="8dp"
+            android:paddingRight="10dp"
+            android:paddingBottom="8dp"
+            android:text="@string/fb_sound_vibrate"
+            android:textColor="#2E7D32"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/countText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:gravity="end|center_vertical"
+            android:maxLines="1"
+            android:paddingLeft="4dp"
+            android:paddingRight="4dp"
+            android:text="@string/count_zero"
+            android:textColor="#666666"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <EditText
+        android:id="@+id/resultEdit"
+        android:layout_width="match_parent"
+        android:layout_height="118dp"
+        android:layout_marginLeft="10dp"
+        android:layout_marginTop="2dp"
+        android:layout_marginRight="10dp"
+        android:background="#F2F3F5"
+        android:fontFamily="monospace"
+        android:gravity="top|start"
+        android:hint="@string/edit_hint"
+        android:importantForAutofill="no"
+        android:inputType="textMultiLine|textNoSuggestions"
+        android:padding="10dp"
+        android:scrollbars="vertical"
+        android:textColor="#111111"
+        android:textColorHint="#AAAAAA"
+        android:textSize="14sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingLeft="10dp"
+        android:paddingTop="6dp"
+        android:paddingRight="10dp"
+        android:paddingBottom="10dp">
+
+        <Button
+            android:id="@+id/saveButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/save_csv"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/copyButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/copy"
+            android:textAllCaps="false" />
+    </LinearLayout>
+
+</LinearLayout>

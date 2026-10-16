@@ -1,0 +1,12 @@
+-dontwarn com.google.**
+-dontwarn org.checkerframework.**
+-dontwarn javax.annotation.**
+-dontwarn kotlin.**
+-dontwarn org.conscrypt.**
+-dontwarn org.bouncycastle.**
+-dontwarn org.openjsse.**
+
+-keep class com.google.mlkit.** { *; }
+-keep class com.google.android.gms.internal.mlkit_vision_barcode.** { *; }
+-keepattributes Signature
+-keepattributes *Annotation*

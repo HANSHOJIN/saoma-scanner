@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">扫码器</string>
+
+    <string name="hint_idle">把条形码放进取景框</string>
+    <string name="hint_single">识别中…</string>
+    <string name="hint_multi">检测到多个条码，点击要保存的那个</string>
+    <string name="hint_duplicate">已经记录过啦（关掉「去重」可重复记录）</string>
+    <string name="hint_no_permission">没有相机权限，无法扫描。请到「设置 → 应用 → 扫码器 → 权限」中开启相机权限后重新打开。</string>
+
+    <string name="undo">撤回</string>
+    <string name="clear">清除</string>
+    <string name="clear_title">清空全部记录？</string>
+    <string name="clear_message">一共 %1$d 条记录，清空后无法恢复。</string>
+    <string name="clear_ok">清空</string>
+    <string name="cancel">取消</string>
+    <string name="dedup_on">去重：开</string>
+    <string name="dedup_off">去重：关</string>
+    <string name="fb_none">提示：无</string>
+    <string name="fb_sound">提示：声音</string>
+    <string name="fb_sound_vibrate">提示：声音+震动</string>
+    <string name="fb_vibrate">提示：震动</string>
+    <string name="torch_on">开灯</string>
+    <string name="torch_off">关灯</string>
+    <string name="save_csv">保存为 CSV</string>
+    <string name="copy">复制到剪贴板</string>
+    <string name="edit_hint">扫描结果会一行一条显示在这里，也可以手动编辑</string>
+    <string name="count_zero">已记录 0 条</string>
+</resources>
