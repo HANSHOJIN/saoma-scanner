@@ -76,6 +76,9 @@ public class MainActivity extends ComponentActivity {
     private static final String KEY_PRIORITY = "priority";
     private static final String KEY_LAST_SIG = "last_sig";
     private static final String KEY_LAST_VALUE = "last_value";
+    private static final String KEY_SCOPE = "scope";
+    private static final String KEY_ROI = "roi";
+    private static final String KEY_LINE = "line";
 
     /** 同屏多个条码时，自动判定的那个要稳定这么久才记录（给人工干预留时间） */
     private static final long MULTI_AUTO_COMMIT_MS = 1000L;
@@ -110,6 +113,7 @@ public class MainActivity extends ComponentActivity {
     private TextView dedupButton;
     private TextView feedbackButton;
     private TextView priorityButton;
+    private TextView scopeButton;
     private EditText resultEdit;
 
     private final ExecutorService analysisExecutor = Executors.newSingleThreadExecutor();
@@ -130,6 +134,10 @@ public class MainActivity extends ComponentActivity {
     /** 多码模式下"即将自动记录"的候选，以及它开始稳定的时间 */
     private String autoCandidateKey;
     private long autoSince;
+    /** 识别范围限定：全部 / 取景框 / 扫描线 */
+    private int scopeMode = OverlayView.SCOPE_OFF;
+    private final RectF scopeRoi = new RectF(0.05f, 0.42f, 0.95f, 0.58f);
+    private float scopeLineY = 0.5f;
     private SharedPreferences prefs;
     private Vibrator vibrator;
     private ToneGenerator toneGenerator;
@@ -186,6 +194,18 @@ public class MainActivity extends ComponentActivity {
         lastPickSignature = prefs.getString(KEY_LAST_SIG, "");
         lastCommittedValue = prefs.getString(KEY_LAST_VALUE, "");
         updatePriorityButton();
+
+        scopeButton = findViewById(R.id.scopeButton);
+        scopeMode = prefs.getInt(KEY_SCOPE, OverlayView.SCOPE_OFF);
+        loadScopeGeometry();
+        overlay.setRoiChangeListener(() -> {
+            scopeRoi.set(overlay.getRoi());
+            scopeLineY = overlay.getLineY();
+            saveScopeGeometry();
+            resetScanState();
+        });
+        applyScopeToOverlay();
+        updateScopeButton();
         vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
         try {
             soundPool = new SoundPool.Builder().setMaxStreams(2).build();
@@ -255,6 +275,33 @@ public class MainActivity extends ComponentActivity {
                     toast("同屏多码时：智能（记住你上次点的那种码）");
                     break;
             }
+        });
+        scopeButton.setOnClickListener(v -> {
+            scopeMode = (scopeMode + 1) % 3;
+            prefs.edit().putInt(KEY_SCOPE, scopeMode).apply();
+            applyScopeToOverlay();
+            updateScopeButton();
+            resetScanState();
+            switch (scopeMode) {
+                case OverlayView.SCOPE_BOX:
+                    toast("只识别取景框里的条码（拖动移动、拉四角缩放）");
+                    break;
+                case OverlayView.SCOPE_LINE:
+                    toast("只识别压到红线上的条码（上下拖动可调）");
+                    break;
+                default:
+                    toast("不限范围：画面里所有条码都会识别");
+                    break;
+            }
+        });
+        scopeButton.setOnLongClickListener(v -> {
+            overlay.resetScope();
+            scopeRoi.set(overlay.getRoi());
+            scopeLineY = overlay.getLineY();
+            saveScopeGeometry();
+            resetScanState();
+            toast("范围已恢复默认位置");
+            return true;
         });
 
         overlay.setTapListener(detection -> {
@@ -444,7 +491,9 @@ public class MainActivity extends ComponentActivity {
         }
 
         boolean sawDuplicate = false;
+        boolean sawOutside = false;
         List<OverlayView.Detection> visible = new ArrayList<>();
+        List<OverlayView.Detection> ignored = new ArrayList<>();
         for (RawDetection d : raw) {
             String key = dedupKey(d.value);
             if (suppressed.containsKey(key)) {
@@ -468,7 +517,15 @@ public class MainActivity extends ComponentActivity {
             if (box == null) {
                 continue;
             }
-            visible.add(new OverlayView.Detection(d.value, box, d.format));
+            OverlayView.Detection det = new OverlayView.Detection(d.value, box, d.format);
+            if (!isInScope(box, viewWidth, viewHeight)) {
+                // 取景框/扫描线之外的：画灰框提示，但绝不记录
+                det.ignored = true;
+                ignored.add(det);
+                sawOutside = true;
+                continue;
+            }
+            visible.add(det);
         }
 
         boolean multi = visible.size() > 1;
@@ -509,7 +566,9 @@ public class MainActivity extends ComponentActivity {
             }
         }
 
-        overlay.setDetections(visible, multi);
+        List<OverlayView.Detection> all = new ArrayList<>(visible);
+        all.addAll(ignored);
+        overlay.setDetections(all, multi);
 
         if (visible.isEmpty() && sawDuplicate) {
             flashMessage = null;
@@ -519,6 +578,11 @@ public class MainActivity extends ComponentActivity {
                 lastDuplicateSignalAt = now;
                 duplicateFeedback();
             }
+        } else if (visible.isEmpty() && sawOutside && (flashMessage == null || now >= flashUntil)) {
+            flashMessage = null;
+            setHint(scopeMode == OverlayView.SCOPE_LINE
+                    ? "只记录压到红线上的条码，把条码对准红线"
+                    : "只记录取景框里的条码，把条码放进框里", false);
         } else if (autoValue != null) {
             flashMessage = null;
             String shown = autoValue.length() > 16 ? autoValue.substring(0, 16) + "…" : autoValue;
@@ -639,6 +703,76 @@ public class MainActivity extends ComponentActivity {
                 feedbackButton.setTextColor(0xFF2E7D32);
                 break;
         }
+    }
+
+    // ---------------------------------------------------------------- 识别范围
+
+    private void loadScopeGeometry() {
+        String s = prefs.getString(KEY_ROI, "");
+        if (s != null && !s.isEmpty()) {
+            String[] parts = s.split(",");
+            if (parts.length == 4) {
+                try {
+                    scopeRoi.set(Float.parseFloat(parts[0]), Float.parseFloat(parts[1]),
+                            Float.parseFloat(parts[2]), Float.parseFloat(parts[3]));
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+        scopeLineY = prefs.getFloat(KEY_LINE, 0.5f);
+    }
+
+    private void saveScopeGeometry() {
+        prefs.edit()
+                .putString(KEY_ROI, scopeRoi.left + "," + scopeRoi.top + "," + scopeRoi.right + "," + scopeRoi.bottom)
+                .putFloat(KEY_LINE, scopeLineY)
+                .apply();
+    }
+
+    private void applyScopeToOverlay() {
+        overlay.setRoi(scopeRoi);
+        overlay.setLineY(scopeLineY);
+        overlay.setScopeMode(scopeMode);
+    }
+
+    /** 改了取景框/扫描线之后，清掉临时的判定状态，避免刚挪完就误记一条 */
+    private void resetScanState() {
+        pendingValue = null;
+        autoCandidateKey = null;
+        suppressed.clear();
+        overlay.setDetections(new ArrayList<>(), false);
+    }
+
+    private void updateScopeButton() {
+        switch (scopeMode) {
+            case OverlayView.SCOPE_BOX:
+                scopeButton.setText(R.string.scope_box);
+                scopeButton.setTextColor(0xFF00E5FF);
+                break;
+            case OverlayView.SCOPE_LINE:
+                scopeButton.setText(R.string.scope_line);
+                scopeButton.setTextColor(0xFFFF5252);
+                break;
+            default:
+                scopeButton.setText(R.string.scope_off);
+                scopeButton.setTextColor(0xFFFFFFFF);
+                break;
+        }
+    }
+
+    /** 条码是否落在限定的识别范围内 */
+    private boolean isInScope(RectF box, int viewWidth, int viewHeight) {
+        if (scopeMode == OverlayView.SCOPE_OFF || box == null) {
+            return true;
+        }
+        if (scopeMode == OverlayView.SCOPE_BOX) {
+            RectF r = new RectF(scopeRoi.left * viewWidth, scopeRoi.top * viewHeight,
+                    scopeRoi.right * viewWidth, scopeRoi.bottom * viewHeight);
+            return r.contains(box.centerX(), box.centerY());
+        }
+        // 扫描线：条码的竖直范围要压到这条线
+        float y = scopeLineY * viewHeight;
+        return box.top <= y && box.bottom >= y;
     }
 
     private void updatePriorityButton() {

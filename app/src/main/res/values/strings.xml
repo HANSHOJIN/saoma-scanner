@@ -24,6 +24,9 @@
     <string name="priority_ean13">优先：商品条码</string>
     <string name="priority_code128">优先：Code128</string>
     <string name="priority_manual">优先：手动</string>
+    <string name="scope_off">范围：全部</string>
+    <string name="scope_box">范围：取景框</string>
+    <string name="scope_line">范围：扫描线</string>
     <string name="torch_on">开灯</string>
     <string name="torch_off">关灯</string>
     <string name="save_csv">保存为 CSV</string>

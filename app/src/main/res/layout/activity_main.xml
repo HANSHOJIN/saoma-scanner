@@ -22,6 +22,25 @@
             android:layout_height="match_parent" />
 
         <TextView
+            android:id="@+id/scopeButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="114dp"
+            android:layout_marginRight="10dp"
+            android:background="@drawable/torch_bg"
+            android:clickable="true"
+            android:focusable="true"
+            android:longClickable="true"
+            android:paddingLeft="14dp"
+            android:paddingTop="8dp"
+            android:paddingRight="14dp"
+            android:paddingBottom="8dp"
+            android:text="@string/scope_off"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp" />
+
+        <TextView
             android:id="@+id/hintText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
