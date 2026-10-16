@@ -81,7 +81,7 @@ public class MainActivity extends ComponentActivity {
     private static final String KEY_LINE = "line";
 
     /** 同屏多个条码时，自动判定的那个要稳定这么久才记录（给人工干预留时间） */
-    private static final long MULTI_AUTO_COMMIT_MS = 1000L;
+    private static final long MULTI_AUTO_COMMIT_MS = 500L;
     /** 智能模式兜底：与上次记录的条码至少要有这么多位相同前缀才敢自动选 */
     private static final int MIN_COMMON_PREFIX = 4;
 
@@ -97,10 +97,21 @@ public class MainActivity extends ComponentActivity {
     private static final int FB_SOUND_VIBRATE = 2;
     private static final int FB_VIBRATE = 3;
 
-    /** 单条码持续识别多久后自动记录（毫秒） */
-    private static final long AUTO_COMMIT_MS = 550L;
-    /** 已记录的条码离开画面多久后才允许再次记录（毫秒） */
-    private static final long SUPPRESS_RELEASE_MS = 2000L;
+    /** 单个条码：稳定这么久就自动记录（毫秒） */
+    private static final long AUTO_COMMIT_MS = 300L;
+    /**
+     * 允许的"漏检间隙"：手抖/对焦时 ML Kit 会跳帧（这帧认出、下帧没认出），
+     * 只要在这个时间内又看到同一个条码，就认为没中断，计时不清零。
+     */
+    private static final long DETECTION_GAP_MS = 600L;
+    /** 至少被看到几次才记录，防止单帧误读 */
+    private static final int MIN_SIGHTINGS = 2;
+    /**
+     * 已记录的条码离开画面多久后允许再次记录。
+     * 针对"一整批同款商品"：把手机从上一箱移开、这期间条码离开画面，0.9 秒后即可记下一箱。
+     * 注意必须大于 DETECTION_GAP_MS，否则同一次对着不动会被记两遍。
+     */
+    private static final long SUPPRESS_RELEASE_MS = 900L;
     private static final long FLASH_MS = 1300L;
     /** 重复条码提示的最小间隔，避免一直响 */
     private static final long DUPLICATE_SIGNAL_GAP_MS = 2000L;
@@ -134,6 +145,8 @@ public class MainActivity extends ComponentActivity {
     /** 多码模式下"即将自动记录"的候选，以及它开始稳定的时间 */
     private String autoCandidateKey;
     private long autoSince;
+    private long autoLastSeen;
+    private int autoSeen;
     /** 识别范围限定：全部 / 取景框 / 扫描线 */
     private int scopeMode = OverlayView.SCOPE_OFF;
     private final RectF scopeRoi = new RectF(0.05f, 0.42f, 0.95f, 0.58f);
@@ -153,7 +166,10 @@ public class MainActivity extends ComponentActivity {
     private final Set<String> lastFrameKeys = new HashSet<>();
 
     private String pendingValue;
+    private String pendingKey;
     private long pendingSince;
+    private long pendingLastSeen;
+    private int pendingSeen;
     private String flashMessage;
     private long flashUntil;
     private long lastDuplicateSignalAt;
@@ -533,16 +549,24 @@ public class MainActivity extends ComponentActivity {
 
         if (multi) {
             // 同屏多个条码：按"优先"策略挑一个当作将自动记录的对象
+            pendingKey = null;
             pendingValue = null;
             OverlayView.Detection autoPick = pickAutoCandidate(visible);
             if (autoPick != null) {
                 autoPick.auto = true;
                 autoValue = autoPick.value;
                 String key = dedupKey(autoPick.value);
-                if (!key.equals(autoCandidateKey)) {
+                // 容忍漏检：只要间隔不超过 DETECTION_GAP_MS，就认为还是"同一个一直在看"
+                if (key.equals(autoCandidateKey) && now - autoLastSeen <= DETECTION_GAP_MS) {
+                    autoLastSeen = now;
+                    autoSeen++;
+                } else {
                     autoCandidateKey = key;
                     autoSince = now;
-                } else if (now - autoSince >= MULTI_AUTO_COMMIT_MS) {
+                    autoLastSeen = now;
+                    autoSeen = 1;
+                }
+                if (autoSeen >= MIN_SIGHTINGS && now - autoSince >= MULTI_AUTO_COMMIT_MS) {
                     commit(autoPick.value, autoPick.format);
                     autoCandidateKey = null;
                     autoValue = null;
@@ -554,14 +578,23 @@ public class MainActivity extends ComponentActivity {
             autoCandidateKey = null;
             if (visible.size() == 1) {
                 OverlayView.Detection only = visible.get(0);
-                String value = only.value;
-                if (!value.equals(pendingValue)) {
-                    pendingValue = value;
+                String key = dedupKey(only.value);
+                // 同样容忍漏检，避免"绿框一闪一闪但永远攒不满时间"
+                if (key.equals(pendingKey) && now - pendingLastSeen <= DETECTION_GAP_MS) {
+                    pendingLastSeen = now;
+                    pendingSeen++;
+                } else {
+                    pendingKey = key;
+                    pendingValue = only.value;
                     pendingSince = now;
-                } else if (now - pendingSince >= AUTO_COMMIT_MS) {
-                    commit(value, only.format);
+                    pendingLastSeen = now;
+                    pendingSeen = 1;
+                }
+                if (pendingSeen >= MIN_SIGHTINGS && now - pendingSince >= AUTO_COMMIT_MS) {
+                    commit(only.value, only.format);
                 }
             } else {
+                pendingKey = null;
                 pendingValue = null;
             }
         }
@@ -738,7 +771,10 @@ public class MainActivity extends ComponentActivity {
     /** 改了取景框/扫描线之后，清掉临时的判定状态，避免刚挪完就误记一条 */
     private void resetScanState() {
         pendingValue = null;
+        pendingKey = null;
+        pendingSeen = 0;
         autoCandidateKey = null;
+        autoSeen = 0;
         suppressed.clear();
         overlay.setDetections(new ArrayList<>(), false);
     }
@@ -826,6 +862,8 @@ public class MainActivity extends ComponentActivity {
         suppressed.put(dedupKey(value), now);
         lastSeen.put(dedupKey(value), now);
         pendingValue = null;
+        pendingKey = null;
+        autoCandidateKey = null;
 
         // 记住这次记的是"哪种码"，智能模式下次同屏多码时优先自动选它
         lastPickSignature = signatureOf(value, format);
