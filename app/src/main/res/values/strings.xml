@@ -27,6 +27,9 @@
     <string name="scope_off">范围：全部</string>
     <string name="scope_box">范围：取景框</string>
     <string name="scope_line">范围：扫描线</string>
+    <string name="beat_off">节拍：关</string>
+    <string name="beat_title">节拍设定</string>
+    <string name="beat_none">关（不限制）</string>
     <string name="torch_on">开灯</string>
     <string name="torch_off">关灯</string>
     <string name="save_csv">保存为 CSV</string>

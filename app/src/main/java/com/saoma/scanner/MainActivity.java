@@ -79,6 +79,10 @@ public class MainActivity extends ComponentActivity {
     private static final String KEY_SCOPE = "scope";
     private static final String KEY_ROI = "roi";
     private static final String KEY_LINE = "line";
+    private static final String KEY_BEAT = "beat";
+
+    /** 节拍可选项：记录一条之后这么多毫秒内不再扫描（0 = 不限制） */
+    private static final long[] BEAT_VALUES = {0L, 500L, 800L, 1000L, 1500L, 2000L, 3000L};
 
     /** 同屏多个条码时，自动判定的那个要稳定这么久才记录（给人工干预留时间） */
     private static final long MULTI_AUTO_COMMIT_MS = 500L;
@@ -125,6 +129,7 @@ public class MainActivity extends ComponentActivity {
     private TextView feedbackButton;
     private TextView priorityButton;
     private TextView scopeButton;
+    private TextView beatButton;
     private EditText resultEdit;
 
     private final ExecutorService analysisExecutor = Executors.newSingleThreadExecutor();
@@ -151,6 +156,10 @@ public class MainActivity extends ComponentActivity {
     private int scopeMode = OverlayView.SCOPE_OFF;
     private final RectF scopeRoi = new RectF(0.05f, 0.42f, 0.95f, 0.58f);
     private float scopeLineY = 0.5f;
+    /** 节拍：记录一条后多少毫秒内不再扫描（0 = 不限制） */
+    private long beatMs = 0L;
+    /** 节拍冷却截止时间 */
+    private long cooldownUntil = 0L;
     private SharedPreferences prefs;
     private Vibrator vibrator;
     private ToneGenerator toneGenerator;
@@ -222,6 +231,11 @@ public class MainActivity extends ComponentActivity {
         });
         applyScopeToOverlay();
         updateScopeButton();
+
+        beatButton = findViewById(R.id.beatButton);
+        beatMs = prefs.getLong(KEY_BEAT, 0L);
+        updateBeatButton();
+        beatButton.setOnClickListener(v -> showBeatDialog());
         vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
         try {
             soundPool = new SoundPool.Builder().setMaxStreams(2).build();
@@ -550,8 +564,15 @@ public class MainActivity extends ComponentActivity {
 
         boolean multi = visible.size() > 1;
         String autoValue = null;
+        final boolean cooling = now < cooldownUntil;
+        final boolean flashing = flashMessage != null && now < flashUntil;
 
-        if (multi) {
+        if (cooling) {
+            // 节拍冷却中：什么都不记、也不出提示音，只保持画面上的框
+            pendingKey = null;
+            pendingValue = null;
+            autoCandidateKey = null;
+        } else if (multi) {
             // 同屏多个条码：按"优先"策略挑一个当作将自动记录的对象
             pendingKey = null;
             pendingValue = null;
@@ -607,7 +628,12 @@ public class MainActivity extends ComponentActivity {
         all.addAll(ignored);
         overlay.setDetections(all, multi);
 
-        if (visible.isEmpty() && sawDuplicate) {
+        if (flashing) {
+            setHint(flashMessage, false);
+        } else if (cooling) {
+            setHint("节拍中… 还差 "
+                    + String.format(Locale.US, "%.1f", (cooldownUntil - now) / 1000f) + " 秒", false);
+        } else if (visible.isEmpty() && sawDuplicate) {
             flashMessage = null;
             setHint(getString(R.string.hint_duplicate), true);
             // 重复的条码也给提示音/震动（和“记录成功”的声音、震动模式不同），避免用户反复扫
@@ -615,7 +641,7 @@ public class MainActivity extends ComponentActivity {
                 lastDuplicateSignalAt = now;
                 duplicateFeedback();
             }
-        } else if (visible.isEmpty() && sawOutside && (flashMessage == null || now >= flashUntil)) {
+        } else if (visible.isEmpty() && sawOutside) {
             flashMessage = null;
             setHint(scopeMode == OverlayView.SCOPE_LINE
                     ? "只记录压到红线上的条码，把条码对准红线"
@@ -779,8 +805,55 @@ public class MainActivity extends ComponentActivity {
         pendingSeen = 0;
         autoCandidateKey = null;
         autoSeen = 0;
+        cooldownUntil = 0L;
         suppressed.clear();
         overlay.setDetections(new ArrayList<>(), false);
+    }
+
+    // ---------------------------------------------------------------- 节拍
+
+    private static String beatLabel(long ms) {
+        if (ms <= 0L) {
+            return "关";
+        }
+        if (ms % 1000L == 0L) {
+            return (ms / 1000L) + "s";
+        }
+        return String.format(Locale.US, "%.1fs", ms / 1000f);
+    }
+
+    private void updateBeatButton() {
+        beatButton.setText("节拍：" + beatLabel(beatMs));
+        beatButton.setTextColor(beatMs > 0L ? 0xFFFFD54F : 0xFFFFFFFF);
+    }
+
+    private void showBeatDialog() {
+        final String[] items = new String[BEAT_VALUES.length];
+        items[0] = getString(R.string.beat_none);
+        for (int i = 1; i < BEAT_VALUES.length; i++) {
+            items[i] = String.format(Locale.US, "%.1f 秒", BEAT_VALUES[i] / 1000f);
+        }
+        int checked = 0;
+        for (int i = 0; i < BEAT_VALUES.length; i++) {
+            if (BEAT_VALUES[i] == beatMs) {
+                checked = i;
+                break;
+            }
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.beat_title)
+                .setSingleChoiceItems(items, checked, (dialog, which) -> {
+                    beatMs = BEAT_VALUES[which];
+                    prefs.edit().putLong(KEY_BEAT, beatMs).apply();
+                    updateBeatButton();
+                    cooldownUntil = 0L;
+                    dialog.dismiss();
+                    toast(beatMs <= 0L
+                            ? "节拍：不限制，识别到就记"
+                            : "节拍：记录一条后 " + beatLabel(beatMs) + " 内不再扫描");
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
     }
 
     private void updateScopeButton() {
@@ -882,6 +955,8 @@ public class MainActivity extends ComponentActivity {
         String shown = value.length() > 22 ? value.substring(0, 22) + "…" : value;
         flashMessage = "已记录：" + shown;
         flashUntil = now + FLASH_MS;
+        // 节拍：从现在起 beatMs 内不再扫描
+        cooldownUntil = now + beatMs;
         setHint(flashMessage, false);
         feedback();
     }
@@ -1018,6 +1093,11 @@ public class MainActivity extends ComponentActivity {
     private void clearAll() {
         resultEdit.setText("");
         pendingValue = null;
+        pendingKey = null;
+        pendingSeen = 0;
+        autoCandidateKey = null;
+        autoSeen = 0;
+        cooldownUntil = 0L;
         flashMessage = null;
         long now = SystemClock.elapsedRealtime();
         // 画面里还在的条码先屏蔽住，避免刚清空马上又自动记回来
