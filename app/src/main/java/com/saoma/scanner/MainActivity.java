@@ -478,23 +478,6 @@ public class MainActivity extends ComponentActivity {
     private void handleDetections(List<RawDetection> raw, int uprightWidth, int uprightHeight) {
         long now = SystemClock.elapsedRealtime();
 
-        for (RawDetection d : raw) {
-            lastSeen.put(dedupKey(d.value), now);
-        }
-        lastFrameKeys.clear();
-        for (RawDetection d : raw) {
-            lastFrameKeys.add(dedupKey(d.value));
-        }
-        // 已记录过的条码离开画面足够久后，解除屏蔽
-        Iterator<Map.Entry<String, Long>> it = suppressed.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<String, Long> entry = it.next();
-            long seen = lastSeen.containsKey(entry.getKey()) ? lastSeen.get(entry.getKey()) : 0L;
-            if (now - seen > SUPPRESS_RELEASE_MS) {
-                it.remove();
-            }
-        }
-
         int viewWidth = overlay.getWidth();
         int viewHeight = overlay.getHeight();
 
@@ -510,15 +493,38 @@ public class MainActivity extends ComponentActivity {
         boolean sawOutside = false;
         List<OverlayView.Detection> visible = new ArrayList<>();
         List<OverlayView.Detection> ignored = new ArrayList<>();
+        lastFrameKeys.clear();
+
         for (RawDetection d : raw) {
+            RectF box = mapToView(d.box, uprightWidth, uprightHeight, viewWidth, viewHeight);
+            if (box == null) {
+                continue;
+            }
+            OverlayView.Detection det = new OverlayView.Detection(d.value, box, d.format);
+
+            // ① 先按取景框/扫描线过滤：范围外的完全不参与任何判断
+            //    （不算重复、不提示、不刷新"还在画面里"的计时，自然也不会被记录）
+            if (!isInScope(box, viewWidth, viewHeight)) {
+                det.ignored = true;
+                ignored.add(det);
+                sawOutside = true;
+                continue;
+            }
+
             String key = dedupKey(d.value);
+            lastFrameKeys.add(key);
+            lastSeen.put(key, now);
+
+            // ② 刚记录过、还停留在画面里的，先屏蔽
             if (suppressed.containsKey(key)) {
                 continue;
             }
+            // ③ 去重：这个值已经在列表里了
             if (dedupEnabled && recorded.contains(key)) {
                 sawDuplicate = true;
                 continue;
             }
+            // ④ 同一帧里同一个值只算一次
             boolean duplicate = false;
             for (OverlayView.Detection existing : visible) {
                 if (dedupKey(existing.value).equals(key)) {
@@ -529,19 +535,17 @@ public class MainActivity extends ComponentActivity {
             if (duplicate) {
                 continue;
             }
-            RectF box = mapToView(d.box, uprightWidth, uprightHeight, viewWidth, viewHeight);
-            if (box == null) {
-                continue;
-            }
-            OverlayView.Detection det = new OverlayView.Detection(d.value, box, d.format);
-            if (!isInScope(box, viewWidth, viewHeight)) {
-                // 取景框/扫描线之外的：画灰框提示，但绝不记录
-                det.ignored = true;
-                ignored.add(det);
-                sawOutside = true;
-                continue;
-            }
             visible.add(det);
+        }
+
+        // 已记录过的条码离开画面（或离开范围）足够久后，解除屏蔽
+        Iterator<Map.Entry<String, Long>> it = suppressed.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String, Long> entry = it.next();
+            long seen = lastSeen.containsKey(entry.getKey()) ? lastSeen.get(entry.getKey()) : 0L;
+            if (now - seen > SUPPRESS_RELEASE_MS) {
+                it.remove();
+            }
         }
 
         boolean multi = visible.size() > 1;
