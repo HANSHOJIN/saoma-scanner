@@ -506,7 +506,6 @@ public class MainActivity extends ComponentActivity {
         boolean sawDuplicate = false;
         boolean sawOutside = false;
         List<OverlayView.Detection> visible = new ArrayList<>();
-        List<OverlayView.Detection> ignored = new ArrayList<>();
         lastFrameKeys.clear();
 
         for (RawDetection d : raw) {
@@ -514,17 +513,15 @@ public class MainActivity extends ComponentActivity {
             if (box == null) {
                 continue;
             }
-            OverlayView.Detection det = new OverlayView.Detection(d.value, box, d.format);
 
-            // ① 先按取景框/扫描线过滤：范围外的完全不参与任何判断
-            //    （不算重复、不提示、不刷新"还在画面里"的计时，自然也不会被记录）
+            // ① 先按取景框/扫描线过滤：范围外的彻底当看不见
+            //    （不画框、不记录、不提示、不刷新"还在画面里"的计时）
             if (!isInScope(box, viewWidth, viewHeight)) {
-                det.ignored = true;
-                ignored.add(det);
                 sawOutside = true;
                 continue;
             }
 
+            OverlayView.Detection det = new OverlayView.Detection(d.value, box, d.format);
             String key = dedupKey(d.value);
             lastFrameKeys.add(key);
             lastSeen.put(key, now);
@@ -624,9 +621,7 @@ public class MainActivity extends ComponentActivity {
             }
         }
 
-        List<OverlayView.Detection> all = new ArrayList<>(visible);
-        all.addAll(ignored);
-        overlay.setDetections(all, multi);
+        overlay.setDetections(visible, multi);
 
         if (flashing) {
             setHint(flashMessage, false);

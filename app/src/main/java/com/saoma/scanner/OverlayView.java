@@ -34,8 +34,6 @@ public class OverlayView extends View {
         public final int format; // ML Kit 的条码格式
         /** 被判定为"将自动记录"的那个（画绿框并标注） */
         public boolean auto;
-        /** 在范围外被忽略（画灰框，不可点） */
-        public boolean ignored;
 
         public Detection(String value, RectF box, int format) {
             this.value = value;
@@ -224,15 +222,6 @@ public class OverlayView extends View {
             }
             b.inset(-7f * density, -7f * density);
 
-            if (d.ignored) {
-                // 范围外被忽略的：细灰框、不标注
-                boxPaint.setColor(0x66BDBDBD);
-                boxPaint.setStrokeWidth(1.5f * density);
-                canvas.drawRoundRect(b, 10f, 10f, boxPaint);
-                boxPaint.setStrokeWidth(3.5f * density);
-                continue;
-            }
-
             int color = d.auto ? 0xFF00C853 : (multi ? 0xFFFF3B30 : 0xFF00C853);
             boxPaint.setColor(color);
             canvas.drawRoundRect(b, 10f, 10f, boxPaint);
@@ -374,7 +363,7 @@ public class OverlayView extends View {
         Detection best = null;
         float bestArea = Float.MAX_VALUE;
         for (Detection d : detections) {
-            if (d == null || d.box == null || d.ignored) {
+            if (d == null || d.box == null) {
                 continue;
             }
             RectF hit = new RectF(d.box);
