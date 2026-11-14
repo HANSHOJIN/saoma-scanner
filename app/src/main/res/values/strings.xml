@@ -7,6 +7,14 @@
     <string name="hint_multi">检测到多个条码，点击要保存的那个</string>
     <string name="hint_duplicate">已经记录过啦（关掉「去重」可重复记录）</string>
     <string name="hint_no_permission">没有相机权限，无法扫描。请到「设置 → 应用 → 扫码器 → 权限」中开启相机权限后重新打开。</string>
+    <string name="hint_recorded">已记录：%1$s</string>
+    <string name="hint_auto_record">将自动记录：%1$s（点别的框可改）</string>
+    <string name="hint_beat_wait">节拍中… 还差 %1$s 秒</string>
+    <string name="hint_need_line">只记录压到红线上的条码，把条码对准红线</string>
+    <string name="hint_need_box">只记录取景框里的条码，把条码放进框里</string>
+
+    <string name="count_zero">已记录 0 条</string>
+    <string name="count_format">已记录 %1$d 条</string>
 
     <string name="undo">撤回</string>
     <string name="clear">清除</string>
@@ -14,6 +22,12 @@
     <string name="clear_message">一共 %1$d 条记录，清空后无法恢复。</string>
     <string name="clear_ok">清空</string>
     <string name="cancel">取消</string>
+    <string name="save_csv">保存为 CSV</string>
+    <string name="copy">复制到剪贴板</string>
+    <string name="edit_hint">扫描结果会一行一条显示在这里，也可以手动编辑</string>
+
+    <string name="torch_on">开灯</string>
+    <string name="torch_off">关灯</string>
     <string name="dedup_on">去重：开</string>
     <string name="dedup_off">去重：关</string>
     <string name="fb_none">提示：无</string>
@@ -30,10 +44,42 @@
     <string name="beat_off">节拍：关</string>
     <string name="beat_title">节拍设定</string>
     <string name="beat_none">关（不限制）</string>
-    <string name="torch_on">开灯</string>
-    <string name="torch_off">关灯</string>
-    <string name="save_csv">保存为 CSV</string>
-    <string name="copy">复制到剪贴板</string>
-    <string name="edit_hint">扫描结果会一行一条显示在这里，也可以手动编辑</string>
-    <string name="count_zero">已记录 0 条</string>
+    <string name="beat_off_label">关</string>
+    <string name="beat_pill">节拍：%1$s</string>
+    <string name="beat_seconds">%1$.1f 秒</string>
+
+    <string name="overlay_auto">自动</string>
+    <string name="overlay_box_hint">取景框 · 拖动移动、拉角缩放</string>
+    <string name="overlay_line_hint">扫描线 · 上下拖动可调</string>
+
+    <string name="toast_dedup_on">已开启去重：同一个条码只记录一次</string>
+    <string name="toast_dedup_off">已关闭去重：同一个条码可以记录多次</string>
+    <string name="toast_fb_none">记录成功时不提示</string>
+    <string name="toast_fb_sound">记录成功时：响一声</string>
+    <string name="toast_fb_sound_vibrate">记录成功时：响一声 + 震动</string>
+    <string name="toast_fb_vibrate">记录成功时：震动</string>
+    <string name="toast_priority_ean13">同屏多码时：优先自动记商品条码（EAN-13/UPC）</string>
+    <string name="toast_priority_code128">同屏多码时：优先自动记 Code128</string>
+    <string name="toast_priority_manual">同屏多码时：全部手动点选</string>
+    <string name="toast_priority_smart">同屏多码时：智能（记住你上次点的那种码）</string>
+    <string name="toast_scope_box">只识别取景框里的条码（拖动移动、拉四角缩放）</string>
+    <string name="toast_scope_line">只识别压到红线上的条码（上下拖动可调）</string>
+    <string name="toast_scope_off">不限范围：画面里所有条码都会识别</string>
+    <string name="toast_scope_reset">范围已恢复默认位置</string>
+    <string name="toast_camera_fail">相机启动失败：%1$s</string>
+    <string name="toast_torch_unavailable">这台设备没有可用的闪光灯</string>
+    <string name="toast_torch_fail">闪光灯切换失败：%1$s</string>
+    <string name="toast_torch_on">闪光灯已打开</string>
+    <string name="toast_torch_off">闪光灯已关闭</string>
+    <string name="toast_undo_empty">还没有可撤回的记录</string>
+    <string name="toast_undo_done">已撤回：%1$s</string>
+    <string name="toast_clear_empty">还没有记录</string>
+    <string name="toast_cleared">已清空</string>
+    <string name="toast_export_empty">还没有扫描记录</string>
+    <string name="toast_export_fail_stream">保存失败：无法写入该位置</string>
+    <string name="toast_export_ok">已保存 %1$d 条记录到 CSV</string>
+    <string name="toast_export_fail">保存失败：%1$s</string>
+    <string name="toast_copy_ok">已复制 %1$d 条记录</string>
+    <string name="toast_beat_off">节拍：不限制，识别到就记</string>
+    <string name="toast_beat_on">节拍：记录一条后 %1$s 内不再扫描</string>
 </resources>

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- English (international) build: this file overrides every string of the zh build. -->
+<resources>
+    <string name="app_name">Barcode Scanner</string>
+
+    <string name="hint_idle">Point at a barcode</string>
+    <string name="hint_single">Detecting…</string>
+    <string name="hint_multi">Multiple barcodes — tap the one to keep</string>
+    <string name="hint_duplicate">Already in the list (turn Dedup off to repeat)</string>
+    <string name="hint_no_permission">No camera permission. Enable it in Settings → Apps → Barcode Scanner → Permissions, then reopen the app.</string>
+    <string name="hint_recorded">Saved: %1$s</string>
+    <string name="hint_auto_record">Will save: %1$s (tap another box to change)</string>
+    <string name="hint_beat_wait">Waiting %1$s s…</string>
+    <string name="hint_need_line">Only barcodes crossing the red line are saved</string>
+    <string name="hint_need_box">Only barcodes inside the frame are saved</string>
+
+    <string name="count_zero">0 scanned</string>
+    <string name="count_format">%1$d scanned</string>
+
+    <string name="undo">Undo</string>
+    <string name="clear">Clear</string>
+    <string name="clear_title">Clear all records?</string>
+    <string name="clear_message">%1$d records will be deleted. This cannot be undone.</string>
+    <string name="clear_ok">Clear</string>
+    <string name="cancel">Cancel</string>
+    <string name="save_csv">Save CSV</string>
+    <string name="copy">Copy</string>
+    <string name="edit_hint">Scanned results appear here, one per line. You can also edit them.</string>
+
+    <string name="torch_on">Light off</string>
+    <string name="torch_off">Light on</string>
+    <string name="dedup_on">Dedup: on</string>
+    <string name="dedup_off">Dedup: off</string>
+    <string name="fb_none">Beep: none</string>
+    <string name="fb_sound">Beep: sound</string>
+    <string name="fb_sound_vibrate">Beep: sound+vib</string>
+    <string name="fb_vibrate">Beep: vibrate</string>
+    <string name="priority_smart">Pick: smart</string>
+    <string name="priority_ean13">Pick: EAN/UPC</string>
+    <string name="priority_code128">Pick: Code128</string>
+    <string name="priority_manual">Pick: manual</string>
+    <string name="scope_off">Scope: all</string>
+    <string name="scope_box">Scope: frame</string>
+    <string name="scope_line">Scope: line</string>
+    <string name="beat_off">Beat: off</string>
+    <string name="beat_title">Scan interval</string>
+    <string name="beat_none">Off (no limit)</string>
+    <string name="beat_off_label">off</string>
+    <string name="beat_pill">Beat: %1$s</string>
+    <string name="beat_seconds">%1$.1f s</string>
+
+    <string name="overlay_auto">auto</string>
+    <string name="overlay_box_hint">Frame · drag to move, corners to resize</string>
+    <string name="overlay_line_hint">Scan line · drag up/down</string>
+
+    <string name="toast_dedup_on">Dedup on: each barcode is saved once</string>
+    <string name="toast_dedup_off">Dedup off: the same barcode can be saved many times</string>
+    <string name="toast_fb_none">No feedback when a barcode is saved</string>
+    <string name="toast_fb_sound">Beep on save</string>
+    <string name="toast_fb_sound_vibrate">Beep + vibration on save</string>
+    <string name="toast_fb_vibrate">Vibration on save</string>
+    <string name="toast_priority_ean13">Multiple barcodes: auto-pick EAN/UPC</string>
+    <string name="toast_priority_code128">Multiple barcodes: auto-pick Code128</string>
+    <string name="toast_priority_manual">Multiple barcodes: always tap to pick</string>
+    <string name="toast_priority_smart">Multiple barcodes: smart (remembers what you tapped)</string>
+    <string name="toast_scope_box">Only barcodes inside the frame are detected (drag to move, corners to resize)</string>
+    <string name="toast_scope_line">Only barcodes crossing the red line are detected (drag up/down)</string>
+    <string name="toast_scope_off">No scope limit: every barcode in view is detected</string>
+    <string name="toast_scope_reset">Frame/line reset to default position</string>
+    <string name="toast_camera_fail">Camera failed to start: %1$s</string>
+    <string name="toast_torch_unavailable">This device has no usable flashlight</string>
+    <string name="toast_torch_fail">Could not switch the flashlight: %1$s</string>
+    <string name="toast_torch_on">Flashlight on</string>
+    <string name="toast_torch_off">Flashlight off</string>
+    <string name="toast_undo_empty">Nothing to undo</string>
+    <string name="toast_undo_done">Removed: %1$s</string>
+    <string name="toast_clear_empty">No records yet</string>
+    <string name="toast_cleared">Cleared</string>
+    <string name="toast_export_empty">No records to save</string>
+    <string name="toast_export_fail_stream">Save failed: cannot write to that location</string>
+    <string name="toast_export_ok">Saved %1$d records to CSV</string>
+    <string name="toast_export_fail">Save failed: %1$s</string>
+    <string name="toast_copy_ok">Copied %1$d records</string>
+    <string name="toast_beat_off">Beat: no limit — saved as soon as detected</string>
+    <string name="toast_beat_on">Beat: wait %1$s after each saved barcode</string>
+</resources>

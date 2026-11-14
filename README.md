@@ -1,5 +1,7 @@
 # 扫码器（Saoma Scanner）
 
+**中文** | [English](README.en.md)
+
 吐槽：仓库来了100台货需要入库，这么简单的一个软件，结果保存就要买会员什么鬼，自己做。30分钟搞定，主打一个轻巧免费好用。
 
 一个极简的安卓条形码扫描工具。**只扫一维条码**，多码时红框点选，离线识别，结果可导出 CSV。
@@ -19,12 +21,15 @@
 
 ## 下载安装
 
-到 [Releases](../../releases) 下载 `saoma-scanner-v1.8.apk`，传到手机点击安装（提示"未知来源"允许即可）。
-首次打开同意相机权限就能用。
+到 [Releases](../../releases) 下载对应版本，传到手机点击安装（提示"未知来源"允许即可）。首次打开同意相机权限就能用。
+
+- `saoma-scanner-v2.1.apk` —— **中文版**（包名 `com.saoma.scanner`，应用名"扫码器"）
+- `barcode-scanner-v2.1-en.apk` —— **英文国际版**（包名 `com.saoma.scanner.en`，应用名"Barcode Scanner"，
+  界面全英文；两个版本**可以同时安装**，互不影响）
 
 - 系统要求：Android 5.0（API 21）及以上，需要后置摄像头
 - 识别模型已内置，**完全离线，不联网**
-- 安装包约 5.9 MB（versionCode 9 / versionName 1.8），只包含 arm64-v8a / armeabi-v7a
+- 安装包约 5.9 MB（versionCode 14 / versionName 2.1），只包含 arm64-v8a / armeabi-v7a
 
 ## 功能
 
@@ -89,6 +94,11 @@
 ```
 gradle assembleRelease
 ```
+
+一次会出两个包：
+
+- `app/build/outputs/apk/zh/release/app-zh-release.apk` —— 中文版（`com.saoma.scanner`）
+- `app/build/outputs/apk/en/release/app-en-release.apk` —— 英文版（`com.saoma.scanner.en`）
 
 - 本仓库**不含签名文件**：请在 `keystore/` 下自建一个 keystore，并修改 `app/build.gradle`
   里 `signingConfigs.release` 的路径与密码（`keystore/` 与 `local.properties` 已被 .gitignore 忽略）。

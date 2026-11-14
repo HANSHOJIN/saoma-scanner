@@ -25,6 +25,7 @@ if (-not (Test-Path "$root\local.properties")) {
 & $gradle -p $root assembleRelease --console=plain
 
 Write-Host ""
-Write-Host "APK 输出目录： $root\app\build\outputs\apk\release"
-Get-ChildItem "$root\app\build\outputs\apk\release" -ErrorAction SilentlyContinue |
-    Select-Object Name, @{ n = 'MB'; e = { [math]::Round($_.Length / 1MB, 2) } }
+Write-Host "APK 输出目录（中文版 zh / 英文版 en）： $root\app\build\outputs\apk"
+Get-ChildItem "$root\app\build\outputs\apk" -Recurse -Filter '*.apk' -ErrorAction SilentlyContinue |
+    Select-Object @{ n = 'APK'; e = { $_.FullName.Replace("$root\", '') } },
+                  @{ n = 'MB'; e = { [math]::Round($_.Length / 1MB, 2) } }

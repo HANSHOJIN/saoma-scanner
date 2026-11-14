@@ -263,7 +263,7 @@ public class MainActivity extends ComponentActivity {
             prefs.edit().putBoolean(KEY_DEDUP, dedupEnabled).apply();
             updateDedupButton();
             pendingValue = null;
-            toast(dedupEnabled ? "已开启去重：同一个条码只记录一次" : "已关闭去重：同一个条码可以记录多次");
+            toast(getString(dedupEnabled ? R.string.toast_dedup_on : R.string.toast_dedup_off));
         });
         feedbackButton.setOnClickListener(v -> {
             feedbackMode = (feedbackMode + 1) % 4;
@@ -271,16 +271,16 @@ public class MainActivity extends ComponentActivity {
             updateFeedbackButton();
             switch (feedbackMode) {
                 case FB_NONE:
-                    toast("记录成功时不提示");
+                    toast(getString(R.string.toast_fb_none));
                     break;
                 case FB_SOUND:
-                    toast("记录成功时：响一声");
+                    toast(getString(R.string.toast_fb_sound));
                     break;
                 case FB_SOUND_VIBRATE:
-                    toast("记录成功时：响一声 + 震动");
+                    toast(getString(R.string.toast_fb_sound_vibrate));
                     break;
                 default:
-                    toast("记录成功时：震动");
+                    toast(getString(R.string.toast_fb_vibrate));
                     feedback(); // 让用户马上感受到效果
                     break;
             }
@@ -293,16 +293,16 @@ public class MainActivity extends ComponentActivity {
             pendingValue = null;
             switch (priorityMode) {
                 case PRIORITY_EAN13:
-                    toast("同屏多码时：优先自动记商品条码（EAN-13/UPC）");
+                    toast(getString(R.string.toast_priority_ean13));
                     break;
                 case PRIORITY_CODE128:
-                    toast("同屏多码时：优先自动记 Code128");
+                    toast(getString(R.string.toast_priority_code128));
                     break;
                 case PRIORITY_MANUAL:
-                    toast("同屏多码时：全部手动点选");
+                    toast(getString(R.string.toast_priority_manual));
                     break;
                 default:
-                    toast("同屏多码时：智能（记住你上次点的那种码）");
+                    toast(getString(R.string.toast_priority_smart));
                     break;
             }
         });
@@ -314,13 +314,13 @@ public class MainActivity extends ComponentActivity {
             resetScanState();
             switch (scopeMode) {
                 case OverlayView.SCOPE_BOX:
-                    toast("只识别取景框里的条码（拖动移动、拉四角缩放）");
+                    toast(getString(R.string.toast_scope_box));
                     break;
                 case OverlayView.SCOPE_LINE:
-                    toast("只识别压到红线上的条码（上下拖动可调）");
+                    toast(getString(R.string.toast_scope_line));
                     break;
                 default:
-                    toast("不限范围：画面里所有条码都会识别");
+                    toast(getString(R.string.toast_scope_off));
                     break;
             }
         });
@@ -330,7 +330,7 @@ public class MainActivity extends ComponentActivity {
             scopeLineY = overlay.getLineY();
             saveScopeGeometry();
             resetScanState();
-            toast("范围已恢复默认位置");
+            toast(getString(R.string.toast_scope_reset));
             return true;
         });
 
@@ -402,7 +402,7 @@ public class MainActivity extends ComponentActivity {
                 cameraProvider = future.get();
                 bindCamera();
             } catch (Exception e) {
-                setHint("相机启动失败：" + e, true);
+                setHint(getString(R.string.toast_camera_fail, String.valueOf(e)), true);
             }
         }, ContextCompat.getMainExecutor(this));
     }
@@ -431,14 +431,14 @@ public class MainActivity extends ComponentActivity {
                 torchButton.setText(R.string.torch_off);
             }
         } catch (Exception e) {
-            setHint("相机启动失败：" + e, true);
+            setHint(getString(R.string.toast_camera_fail, String.valueOf(e)), true);
         }
     }
 
     /** 开关手机闪光灯（手电筒） */
     private void toggleTorch() {
         if (camera == null || !camera.getCameraInfo().hasFlashUnit()) {
-            toast("这台设备没有可用的闪光灯");
+            toast(getString(R.string.toast_torch_unavailable));
             return;
         }
         final boolean target = !torchOn;
@@ -448,8 +448,9 @@ public class MainActivity extends ComponentActivity {
                 future.get();
                 torchOn = target;
                 torchButton.setText(target ? R.string.torch_off : R.string.torch_on);
+                toast(getString(target ? R.string.toast_torch_on : R.string.toast_torch_off));
             } catch (Exception e) {
-                toast("闪光灯切换失败：" + e.getMessage());
+                toast(getString(R.string.toast_torch_fail, String.valueOf(e.getMessage())));
             }
         }, ContextCompat.getMainExecutor(this));
     }
@@ -626,8 +627,8 @@ public class MainActivity extends ComponentActivity {
         if (flashing) {
             setHint(flashMessage, false);
         } else if (cooling) {
-            setHint("节拍中… 还差 "
-                    + String.format(Locale.US, "%.1f", (cooldownUntil - now) / 1000f) + " 秒", false);
+            setHint(getString(R.string.hint_beat_wait,
+                    String.format(Locale.US, "%.1f", (cooldownUntil - now) / 1000f)), false);
         } else if (visible.isEmpty() && sawDuplicate) {
             flashMessage = null;
             setHint(getString(R.string.hint_duplicate), true);
@@ -638,13 +639,12 @@ public class MainActivity extends ComponentActivity {
             }
         } else if (visible.isEmpty() && sawOutside) {
             flashMessage = null;
-            setHint(scopeMode == OverlayView.SCOPE_LINE
-                    ? "只记录压到红线上的条码，把条码对准红线"
-                    : "只记录取景框里的条码，把条码放进框里", false);
+            setHint(getString(scopeMode == OverlayView.SCOPE_LINE
+                    ? R.string.hint_need_line : R.string.hint_need_box), false);
         } else if (autoValue != null) {
             flashMessage = null;
             String shown = autoValue.length() > 16 ? autoValue.substring(0, 16) + "…" : autoValue;
-            setHint("将自动记录：" + shown + "（点别的框可改）", false);
+            setHint(getString(R.string.hint_auto_record, shown), false);
         } else {
             updateHint(visible.size(), multi);
         }
@@ -807,9 +807,9 @@ public class MainActivity extends ComponentActivity {
 
     // ---------------------------------------------------------------- 节拍
 
-    private static String beatLabel(long ms) {
+    private String beatLabel(long ms) {
         if (ms <= 0L) {
-            return "关";
+            return getString(R.string.beat_off_label);
         }
         if (ms % 1000L == 0L) {
             return (ms / 1000L) + "s";
@@ -818,7 +818,7 @@ public class MainActivity extends ComponentActivity {
     }
 
     private void updateBeatButton() {
-        beatButton.setText("节拍：" + beatLabel(beatMs));
+        beatButton.setText(getString(R.string.beat_pill, beatLabel(beatMs)));
         beatButton.setTextColor(beatMs > 0L ? 0xFFFFD54F : 0xFFFFFFFF);
     }
 
@@ -826,7 +826,7 @@ public class MainActivity extends ComponentActivity {
         final String[] items = new String[BEAT_VALUES.length];
         items[0] = getString(R.string.beat_none);
         for (int i = 1; i < BEAT_VALUES.length; i++) {
-            items[i] = String.format(Locale.US, "%.1f 秒", BEAT_VALUES[i] / 1000f);
+            items[i] = getString(R.string.beat_seconds, BEAT_VALUES[i] / 1000f);
         }
         int checked = 0;
         for (int i = 0; i < BEAT_VALUES.length; i++) {
@@ -844,8 +844,8 @@ public class MainActivity extends ComponentActivity {
                     cooldownUntil = 0L;
                     dialog.dismiss();
                     toast(beatMs <= 0L
-                            ? "节拍：不限制，识别到就记"
-                            : "节拍：记录一条后 " + beatLabel(beatMs) + " 内不再扫描");
+                            ? getString(R.string.toast_beat_off)
+                            : getString(R.string.toast_beat_on, beatLabel(beatMs)));
                 })
                 .setNegativeButton(R.string.cancel, null)
                 .show();
@@ -948,7 +948,7 @@ public class MainActivity extends ComponentActivity {
         }
 
         String shown = value.length() > 22 ? value.substring(0, 22) + "…" : value;
-        flashMessage = "已记录：" + shown;
+        flashMessage = getString(R.string.hint_recorded, shown);
         flashUntil = now + FLASH_MS;
         // 节拍：从现在起 beatMs 内不再扫描
         cooldownUntil = now + beatMs;
@@ -1038,7 +1038,7 @@ public class MainActivity extends ComponentActivity {
             end--;
         }
         if (end == 0) {
-            toast("还没有可撤回的记录");
+            toast(getString(R.string.toast_undo_empty));
             return;
         }
         int newline = s.lastIndexOf('\n', end - 1);
@@ -1050,7 +1050,8 @@ public class MainActivity extends ComponentActivity {
         suppressed.put(dedupKey(removed), SystemClock.elapsedRealtime());
         pendingValue = null;
         updateHint(0, false);
-        toast("已撤回：" + (removed.length() > 22 ? removed.substring(0, 22) + "…" : removed));
+        toast(getString(R.string.toast_undo_done,
+                removed.length() > 22 ? removed.substring(0, 22) + "…" : removed));
     }
 
     /**
@@ -1074,7 +1075,7 @@ public class MainActivity extends ComponentActivity {
     private void confirmClearAll() {
         final int count = splitLines(resultEdit.getText().toString()).size();
         if (count == 0) {
-            toast("还没有记录");
+            toast(getString(R.string.toast_clear_empty));
             return;
         }
         new AlertDialog.Builder(this)
@@ -1101,7 +1102,7 @@ public class MainActivity extends ComponentActivity {
             lastSeen.put(key, now);
         }
         updateHint(0, false);
-        toast("已清空");
+        toast(getString(R.string.toast_cleared));
     }
 
     private static List<String> splitLines(String text) {
@@ -1119,7 +1120,7 @@ public class MainActivity extends ComponentActivity {
     }
 
     private void updateCount(String text) {
-        countText.setText("已记录 " + splitLines(text).size() + " 条");
+        countText.setText(getString(R.string.count_format, splitLines(text).size()));
     }
 
     private void updateHint(int count, boolean multi) {
@@ -1143,7 +1144,7 @@ public class MainActivity extends ComponentActivity {
     private void saveCsv() {
         List<String> lines = splitLines(resultEdit.getText().toString());
         if (lines.isEmpty()) {
-            toast("还没有扫描记录");
+            toast(getString(R.string.toast_export_empty));
             return;
         }
         String name = "barcodes_"
@@ -1171,7 +1172,7 @@ public class MainActivity extends ComponentActivity {
         try {
             out = getContentResolver().openOutputStream(uri);
             if (out == null) {
-                toast("保存失败：无法写入该位置");
+                toast(getString(R.string.toast_export_fail_stream));
                 return;
             }
             StringBuilder sb = new StringBuilder();
@@ -1181,9 +1182,9 @@ public class MainActivity extends ComponentActivity {
             }
             out.write(sb.toString().getBytes(StandardCharsets.UTF_8));
             out.flush();
-            toast("已保存 " + lines.size() + " 条记录到 CSV");
+            toast(getString(R.string.toast_export_ok, lines.size()));
         } catch (Exception e) {
-            toast("保存失败：" + e.getMessage());
+            toast(getString(R.string.toast_export_fail, String.valueOf(e.getMessage())));
         } finally {
             if (out != null) {
                 try {
@@ -1206,7 +1207,7 @@ public class MainActivity extends ComponentActivity {
     private void copyToClipboard() {
         String text = resultEdit.getText().toString().trim();
         if (text.isEmpty()) {
-            toast("还没有扫描记录");
+            toast(getString(R.string.toast_export_empty));
             return;
         }
         ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
@@ -1214,7 +1215,7 @@ public class MainActivity extends ComponentActivity {
             cm.setPrimaryClip(ClipData.newPlainText("barcodes", text));
         }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            toast("已复制 " + splitLines(text).size() + " 条记录");
+            toast(getString(R.string.toast_copy_ok, splitLines(text).size()));
         }
     }
 

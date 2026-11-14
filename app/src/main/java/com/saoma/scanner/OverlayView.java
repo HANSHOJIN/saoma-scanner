@@ -231,7 +231,7 @@ public class OverlayView extends View {
                 label = label.substring(0, 20) + "…";
             }
             if (d.auto) {
-                label = label + "  · 自动";
+                label = label + "  · " + getContext().getString(R.string.overlay_auto);
             }
             if (label.isEmpty()) {
                 continue;
@@ -278,7 +278,7 @@ public class OverlayView extends View {
 
             scopeTextPaint.setColor(0xFF00E5FF);
             float labelX = Math.max(8f * density, r.left);
-            String labelText = "取景框 · 拖动移动、拉角缩放";
+            String labelText = getContext().getString(R.string.overlay_box_hint);
             float labelW = scopeTextPaint.measureText(labelText);
             if (labelX + labelW > w - 8f * density) {
                 labelX = Math.max(8f * density, w - 8f * density - labelW);
@@ -298,7 +298,7 @@ public class OverlayView extends View {
             canvas.drawCircle(w - 14f * density, y, 7f * density, handle);
 
             scopeTextPaint.setColor(0xFFFF1744);
-            canvas.drawText("扫描线 · 上下拖动可调", 30f * density, Math.max(14f * density, y - 10f * density),
+            canvas.drawText(getContext().getString(R.string.overlay_line_hint), 30f * density, Math.max(14f * density, y - 10f * density),
                     scopeTextPaint);
         }
     }
