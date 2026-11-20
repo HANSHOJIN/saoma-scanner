@@ -69,8 +69,9 @@ That produces both builds:
 - `app/build/outputs/apk/zh/release/app-zh-release.apk` — Chinese (`com.saoma.scanner`)
 - `app/build/outputs/apk/en/release/app-en-release.apk` — English (`com.saoma.scanner.en`)
 
-- **No signing key is included**: create your own keystore and edit `signingConfigs` in
-  `app/build.gradle` (`keystore/` and `local.properties` are git-ignored).
+- **No signing key or password is committed**: put your signing info in `keystore.properties`
+  at the repo root (copy `keystore.properties.example`; the file is git-ignored).
+  Without it the build still succeeds, just unsigned.
 - `local.properties` needs your SDK path, e.g. `sdk.dir=C\:\\Android\\Sdk`
 - Icons and sounds are committed; regenerate with `scripts/make-icons.ps1` / `scripts/make-beeps.ps1` if needed (PowerShell)
 

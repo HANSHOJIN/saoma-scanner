@@ -32,10 +32,17 @@ android {
 
     signingConfigs {
         release {
-            storeFile file('../keystore/saoma.jks')
-            storePassword 'saoma2026'
-            keyAlias 'saoma'
-            keyPassword 'saoma2026'
+            // 签名信息不写进仓库：放在根目录 keystore.properties（已被 .gitignore 忽略）
+            // 缺这个文件时仍能构建，只是 release 包不签名
+            def propsFile = rootProject.file('keystore.properties')
+            if (propsFile.exists()) {
+                def props = new Properties()
+                propsFile.withInputStream { props.load(it) }
+                storeFile rootProject.file(props.getProperty('storeFile', 'keystore/saoma.jks'))
+                storePassword props.getProperty('storePassword')
+                keyAlias props.getProperty('keyAlias', 'saoma')
+                keyPassword props.getProperty('keyPassword')
+            }
         }
     }
 

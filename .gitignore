@@ -10,6 +10,7 @@ tools/
 
 # 签名文件与机器相关配置
 keystore/
+keystore.properties
 local.properties
 
 # IDE

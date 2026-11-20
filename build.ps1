@@ -6,7 +6,7 @@
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
 if (-not $root) { $root = Split-Path -Parent $MyInvocation.MyCommand.Path }
-if (-not $root) { $root = 'F:\codex\saoma' }
+if (-not $root) { $root = (Get-Location).Path }
 
 # 优先用仓库内自带的工具链，没有就用环境里已有的
 if (Test-Path "$root\tools\jdk17") { $env:JAVA_HOME = "$root\tools\jdk17" }

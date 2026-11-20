@@ -1,7 +1,9 @@
 Add-Type -AssemblyName System.Drawing
 
 $sizes = @{ 'mdpi' = 48; 'hdpi' = 72; 'xhdpi' = 96; 'xxhdpi' = 144; 'xxxhdpi' = 192 }
-$root = 'F:\codex\saoma\app\src\main\res'
+$scriptDir = $PSScriptRoot
+if (-not $scriptDir) { $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path }
+$root = Join-Path (Split-Path -Parent $scriptDir) 'app\src\main\res'
 
 foreach ($k in $sizes.Keys) {
     $s = $sizes[$k]

@@ -6,7 +6,6 @@
 
 $root = $PSScriptRoot
 if (-not $root) { $root = Split-Path -Parent $MyInvocation.MyCommand.Path }
-if (-not $root) { $root = 'F:\codex\saoma' }
 $root = (Resolve-Path (Join-Path $root '..')).Path
 
 $outDir = Join-Path $root 'app\src\main\res\raw'

@@ -100,8 +100,9 @@ gradle assembleRelease
 - `app/build/outputs/apk/zh/release/app-zh-release.apk` —— 中文版（`com.saoma.scanner`）
 - `app/build/outputs/apk/en/release/app-en-release.apk` —— 英文版（`com.saoma.scanner.en`）
 
-- 本仓库**不含签名文件**：请在 `keystore/` 下自建一个 keystore，并修改 `app/build.gradle`
-  里 `signingConfigs.release` 的路径与密码（`keystore/` 与 `local.properties` 已被 .gitignore 忽略）。
+- 本仓库**不含签名文件与密码**：把签名信息写进根目录的 `keystore.properties`（照抄
+  `keystore.properties.example` 改成自己的即可；该文件已被 .gitignore 忽略）。
+  没有这个文件时构建照样能过，只是 release 包不会签名。
 - `local.properties` 需要写自己的 SDK 路径，例如：`sdk.dir=C\:\\Android\\Sdk`
 - 应用图标（`app/src/main/res/mipmap-*/ic_launcher.png`）与提示音（`app/src/main/res/raw/*.wav`）已提交，
   一般不用重新生成；要改的话跑 `scripts/make-beeps.ps1` / `scripts/make-icons.ps1`（需 PowerShell，脚本仅 ASCII/BOM 安全）。
